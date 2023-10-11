@@ -12,10 +12,10 @@ As of right now (10/11/2023) There's alot of bugs that need to be fixed, but it'
 
 Known bugs:
 
-Materials constantly break when copied causing you to need to rerun the tool, this is kinda fixed with a button that confirms all materials are not broken when copied, when you see this button make sure to reapply shaders before clicking it
-
-If an avatar has mutliple avatars, it will copy all avatars
-
-Audios do not like to be put back into place automatically for some reason
-
-Animation copying is not possible at the moment.
+1.   Materials constantly break when copied causing you to need to rerun the tool, this is kinda fixed with a button that confirms all materials are not broken when copied, when you see this button make sure to reapply shaders before clicking it
+     
+2.   If an avatar has mutliple avatars, it will copy all avatars
+     
+3.   Audios do not like to be put back into place automatically for some reason
+     
+4.   Animation copying is not possible at the moment.
