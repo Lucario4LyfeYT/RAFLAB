@@ -12,7 +12,7 @@ As of right now (10/11/2023) There's alot of bugs that need to be fixed, but it'
 
 Known bugs:
 
-1.   Materials constantly break when copied causing you to need to rerun the tool, this is kinda fixed with a button that confirms all materials are not broken when copied, when you see this button make sure to reapply shaders before clicking it
+1.   Materials will sometimes lose their reference to the shaders inside of the assetbundle when copied
      
 2.   If an avatar has mutliple avatars, it will copy all avatars
      
