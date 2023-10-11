@@ -1,5 +1,9 @@
 # RAFLAB
 
+Since RAFLAB is still under devolpment, I'm not releasing it as I want to fix some of the issues it has first
+
+RAFLAB was made by me (qkms) and liamriley101
+
 RAFLAB (Recreate Avatar From Loaded Asset Bundle)
 
 RAFLAB lets you take a vrca loaded asset bundle from FACS01 load bundle (https://github.com/FACS01-01/FACS_Utilities) and make get it to project state without ripping it with an asset ripper.
