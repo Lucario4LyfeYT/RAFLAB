@@ -18,3 +18,5 @@ Known Issues (Not bugs, issues):
 3. Audios do not like to be put back into place automatically for some reason
 
 4. Animation copying is not possible at the moment
+
+5. If the folder you're copying materials too already has copied materials, the new materials will lose their references to both textures and shaders making them purple
