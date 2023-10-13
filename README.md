@@ -25,5 +25,7 @@ Known Issues (Not bugs, issues):
 
 5. If the folder you're copying materials too already has copied materials, the new materials will lose their references to both textures and shaders making them purple
 
+6. If multiple meshes use the same material, you'll end up with multiple of the same material as their own seperate material
+
 Demonstration of RAFLAB in action:[
 [https://www.youtube.com/watch?v=m9fn2ppZNZQ](https://www.youtube.com/watch?v=m9fn2ppZNZQ)
