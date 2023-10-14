@@ -2,6 +2,8 @@
 
 RAFLAB is still under development at the moment so if an issue occurs create a new issue about it and I'll look into it
 
+RAFLAB is also very unoptimized at the moment, I plan to optimize code as much as possible in the future
+
 RAFLAB was made by me (qkms) and liamriley101
 
 RAFLAB (Recreate Avatar From Loaded Asset Bundle)
