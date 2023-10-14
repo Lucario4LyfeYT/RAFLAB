@@ -1,6 +1,6 @@
 # RAFLAB
 
-Since RAFLAB is still under devolpment, I'm not releasing it as I want to fix some of the issues it has first
+RAFLAB is still under development at the moment so if an issue occurs create a new issue about it and I'll look into it
 
 RAFLAB was made by me (qkms) and liamriley101
 
@@ -10,9 +10,9 @@ RAFLAB lets you take a vrca loaded asset bundle from FACS01 load bundle (https:/
 
 Animation file copying is not supported at the moment as it's impoosible to recreate animations from loaded asset bundles
 
-This tool is mainly used to rip anti rip avatars that break any asset ripper directly, or get turned into corrupt assets when ripped, I haven't been able to test it with other anti rip systems that either break your mesh, armature or anything else when ripped.
+This tool is mainly used to rip anti rip avatars that break any asset ripper directly, or get turned into corrupt assets when ripped, other anti rips that mess with the mesh vertices and such are not going to be fixed with this method
 
-As of right now (10/11/2023) There's alot of bugs that need to be fixed, but it's in a mostly working state.
+As of right now (10/13/2023) There's alot of bugs that need to be fixed, but it's in a mostly working state.
 
 Known Issues (Not bugs, issues):
 1. If a material uses multiple of the same texture, it'll copy all textures as if they are different, same with other materials using the same texture, so you can get multiple copies of the same texture
