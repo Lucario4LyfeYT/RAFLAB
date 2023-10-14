@@ -17,15 +17,13 @@ As of right now (10/11/2023) There's alot of bugs that need to be fixed, but it'
 Known Issues (Not bugs, issues):
 1. If a material uses multiple of the same texture, it'll copy all textures as if they are different, same with other materials using the same texture, so you can get multiple copies of the same texture
 
-2. If an avatar has mutliple avatars, it will copy all avatars
+2. Audios do not like to be put back into place automatically for some reason
 
-3. Audios do not like to be put back into place automatically for some reason
+3. Animation copying is not possible at the moment
 
-4. Animation copying is not possible at the moment
+4. If the folder you're copying materials too already has copied materials, the new materials will lose their references to both textures and shaders making them purple
 
-5. If the folder you're copying materials too already has copied materials, the new materials will lose their references to both textures and shaders making them purple
-
-6. If multiple meshes use the same material, you'll end up with multiple of the same material as their own seperate material
+5. If multiple meshes use the same material, you'll end up with multiple of the same material as their own seperate material
 
 Demonstration of RAFLAB in action:[
 [https://www.youtube.com/watch?v=m9fn2ppZNZQ](https://www.youtube.com/watch?v=m9fn2ppZNZQ)
