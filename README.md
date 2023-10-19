@@ -1,5 +1,7 @@
 # RAFLAB
 
+If you're part of an anti-rip thing, ooga booga scary rippers use this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Remember to laugh and point or something idk.. or say something about how shit my code is, gets me working. Remember, bullying works! 👍 Without bullying, or me trying to prove someone wrong, and months of work, this wouldn't exist so remember that... your bullying helped this project!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! OOGA BOOGA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! thank you for edging me
+
 RAFLAB is still under development at the moment so if an issue occurs create a new issue about it and I'll look into it
 
 RAFLAB is also very unoptimized at the moment, I plan to optimize code as much as possible in the future
