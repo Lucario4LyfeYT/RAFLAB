@@ -16,7 +16,7 @@ public class RAFLAB : EditorWindow
     //Material Variables
     private GameObject sourceGameObject;
     private DefaultAsset destinationFolder;
-    private Dictionary<Material, Material> copiedMaterials = new Dictionary<Material, Material>();
+    private Dictionary<Material, Material> copiedMaterials = new Dictionary<Material, Material>(); //YES THIS IS NEEDED STOP TRYING TO DELETE IT DUMBASS (past qkms)
 
     //Texture Variables
     private DefaultAsset sourceFolder; // Changed to DefaultAsset type
@@ -35,7 +35,7 @@ public class RAFLAB : EditorWindow
 
     private bool a = false;
 
-    [MenuItem("Custom/RAFLAB V3")]
+    [MenuItem("Custom/RAFLAB V4")]
     public static void ShowWindow()
     {
         Credits credits = new Credits();
@@ -80,7 +80,7 @@ public class RAFLAB : EditorWindow
 
         GUILayout.Space(10);
 
-        GUILayout.Label("Texture Grabber V1", EditorStyles.boldLabel);
+        GUILayout.Label("Texture Grabber V2", EditorStyles.boldLabel);
 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Source Folder:");
@@ -111,7 +111,7 @@ public class RAFLAB : EditorWindow
         parentObject = EditorGUILayout.ObjectField("Parent Object:", parentObject, typeof(Transform), true) as Transform;
 
         saveFolderPath = EditorGUILayout.ObjectField("Destination Folder", saveFolderPath, typeof(DefaultAsset), false) as DefaultAsset;
-        
+
         if (GUILayout.Button("Recreate entire avatar"))
         {
             if (parentGameObject == null || MeshFolderPath == null || sourceGameObject == null || destinationFolder == null || sourceFolder == null || saveFolder == null || sourceGameObject1 == null || destinationFolder1 == null || parentObject == null || saveFolderPath == null)
@@ -207,7 +207,7 @@ public class RAFLAB : EditorWindow
     //Mesh Methods V2
 
     private void CopyMeshes()
-    { 
+    {
 
         MeshFilter[] meshFilters = parentGameObject.GetComponentsInChildren<MeshFilter>(true);
         SkinnedMeshRenderer[] skinnedMeshRenderers = parentGameObject.GetComponentsInChildren<SkinnedMeshRenderer>(true);
@@ -422,7 +422,7 @@ public class RAFLAB : EditorWindow
         copiedMaterials.Add(sourceMaterial, newMaterial);
     }
 
-    //Texture Methods
+    //Texture Methods V2
     private void CaptureMaterialTextures(Material material)
     {
         string[] propertyNames = material.GetTexturePropertyNames();
@@ -434,22 +434,40 @@ public class RAFLAB : EditorWindow
 
             if (texture != null)
             {
-                // Convert the texture to Texture2D.
-                Texture2D tex2D = TextureToTexture2D(texture);
-
-                if (tex2D != null)
+                if (texture is Texture2DArray)
                 {
-                    // Save the captured image to the specified folder.
-                    string saveFolderPath = AssetDatabase.GetAssetPath(saveFolder);
-                    string fullPath = Path.Combine(saveFolderPath, append +  propertyName + ".png");
-                    append++;
-                    byte[] bytes = tex2D.EncodeToPNG();
-                    File.WriteAllBytes(fullPath, bytes);
-                    AssetDatabase.ImportAsset(fullPath);
-                    Texture2D newTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(fullPath);
-                    material.SetTexture(propertyName, newTexture);
+                    // Create a  copy of the Texture2DArray
+                    Texture2DArray newArray = Instantiate((Texture2DArray)texture);
 
-                    Debug.Log("Texture captured and saved to: " + fullPath);
+                    // Save the new Texture2DArray to the specified folder.
+                    string saveFolderPath = AssetDatabase.GetAssetPath(saveFolder);
+                    string fullPath = Path.Combine(saveFolderPath, append + propertyName + "_Array.asset");
+                    append++;
+                    AssetDatabase.CreateAsset(newArray, fullPath);
+                    material.SetTexture(propertyName, newArray);
+
+                    Debug.Log("Texture2DArray saved to: " + fullPath);
+                }
+                else
+                {
+                    // Handle non-texture array case
+                    // Convert the texture to Texture2D.
+                    Texture2D tex2D = TextureToTexture2D(texture);
+
+                    if (tex2D != null)
+                    {
+                        // Save the captured image to the specified folder.
+                        string saveFolderPath = AssetDatabase.GetAssetPath(saveFolder);
+                        string fullPath = Path.Combine(saveFolderPath, append + propertyName + ".png");
+                        append++;
+                        byte[] bytes = tex2D.EncodeToPNG();
+                        File.WriteAllBytes(fullPath, bytes);
+                        AssetDatabase.ImportAsset(fullPath);
+                        Texture2D newTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(fullPath);
+                        material.SetTexture(propertyName, newTexture);
+
+                        Debug.Log("Texture captured and saved to: " + fullPath);
+                    }
                 }
             }
         }
@@ -472,6 +490,7 @@ public class RAFLAB : EditorWindow
 
         return tex2D;
     }
+
 
     //Avatar Copy Methods V2
     private void CopyAvatar()
