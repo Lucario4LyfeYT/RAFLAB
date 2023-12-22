@@ -1,20 +1,21 @@
 #if UNITY_EDITOR
-using UnityEngine;
-using UnityEditor;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System;
 using System.Linq;
+using UnityEditor;
+using UnityEngine;
 
 public class RAFLAB : EditorWindow
 {
-    //Mesh Variables
+    //Parent Gameobject
     private GameObject parentGameObject;
-    private string MeshFolderPath = "Assets/RAFLAB/Avatar DATA/Meshes";
-    private string copiedMeshSkipPath;
+
+    //Mesh Variables
+    private DefaultAsset MeshFolderPath;
+    private List<Mesh> meshesnShit = new List<Mesh>();
 
     //Material Variables
-    private GameObject sourceGameObject;
     private DefaultAsset destinationFolder;
     private Dictionary<Material, Material> copiedMaterials = new Dictionary<Material, Material>(); //YES THIS IS NEEDED STOP TRYING TO DELETE IT DUMBASS (past qkms)
 
@@ -24,317 +25,253 @@ public class RAFLAB : EditorWindow
     private int append;
 
     //Avatar Copy Variables
-    private GameObject sourceGameObject1;
     private DefaultAsset destinationFolder1;
 
     //Audio Variables
-    private Transform parentObject;
     private DefaultAsset saveFolderPath;
     private List<int> copiedAudioClipInstanceIDs = new List<int>(); // Track copied audio clip instance IDs
     public int ii;
 
     private bool a = false;
 
-    [MenuItem("Custom/RAFLAB V4")]
+    [MenuItem("Custom/RAFLAB V5")]
     public static void ShowWindow()
     {
         Credits credits = new Credits();
         credits.showWindow();
-        GetWindow<RAFLAB>("RAFLAB V3");
+        GetWindow<RAFLAB>("RAFLAB V5");
     }
 
     private void OnGUI()
     {
-
-        if (destinationFolder != null && sourceFolder != destinationFolder)
-        {
-            sourceFolder = destinationFolder;
-        }
-
         GUILayout.Label("Coded by qkms and liamriley101", EditorStyles.boldLabel);
-
-        GUILayout.Label("Mesh Copier V2:", EditorStyles.boldLabel);
-        parentGameObject = EditorGUILayout.ObjectField(parentGameObject, typeof(GameObject), true) as GameObject;
-
-        GUILayout.Space(10);
-
-        if (GUILayout.Button("Select Destination Folder for copied meshes"))
-        {
-            string newFolderPath = EditorUtility.SaveFolderPanel("Select Destination Folder", "", "");
-            if (!string.IsNullOrEmpty(newFolderPath))
-            {
-                MeshFolderPath = "Assets" + newFolderPath.Replace(Application.dataPath, "");
-            }
-        }
-
-        GUILayout.Space(10);
-
-        EditorGUILayout.LabelField("Path to copied meshes:", MeshFolderPath);
-
-        GUILayout.Space(10);
-
-        GUILayout.Label("Material Copier V2", EditorStyles.boldLabel);
-
-        sourceGameObject = (GameObject)EditorGUILayout.ObjectField("Source GameObject", sourceGameObject, typeof(GameObject), true);
-        destinationFolder = (DefaultAsset)EditorGUILayout.ObjectField("Destination Folder", destinationFolder, typeof(DefaultAsset), true);
-
-        GUILayout.Space(10);
-
-        GUILayout.Label("Texture Grabber V2", EditorStyles.boldLabel);
-
-        GUILayout.BeginHorizontal();
-        GUILayout.Label("Source Folder:");
-
-        // Replaced the sourceFolderPath with a DefaultAsset field
-        sourceFolder = EditorGUILayout.ObjectField(sourceFolder, typeof(DefaultAsset), false) as DefaultAsset;
-
-        GUILayout.EndHorizontal();
-
-        GUILayout.BeginHorizontal();
-        GUILayout.Label("Save Folder:");
-
-        // Replaced the saveFolderPath with a DefaultAsset field
-        saveFolder = EditorGUILayout.ObjectField(saveFolder, typeof(DefaultAsset), false) as DefaultAsset;
-
-        GUILayout.EndHorizontal();
-
-        GUILayout.Space(10);
-
-        GUILayout.Label("Copy Avatar from Animator V2", EditorStyles.boldLabel);
-        sourceGameObject1 = EditorGUILayout.ObjectField("Source GameObject", sourceGameObject1, typeof(GameObject), true) as GameObject;
-        destinationFolder1 = EditorGUILayout.ObjectField("Destination Folder", destinationFolder1, typeof(DefaultAsset), true) as DefaultAsset;
-
-        GUILayout.Space(10);
-
-        GUILayout.Label("Audio Capture V2", EditorStyles.boldLabel);
-
-        parentObject = EditorGUILayout.ObjectField("Parent Object:", parentObject, typeof(Transform), true) as Transform;
-
-        saveFolderPath = EditorGUILayout.ObjectField("Destination Folder", saveFolderPath, typeof(DefaultAsset), false) as DefaultAsset;
-
+        parentGameObject = EditorGUILayout.ObjectField("Parent Object", parentGameObject, typeof(GameObject), true) as GameObject;
+        DisplayMeshCopierSection();
+        DisplayMaterialCopierSection();
+        DisplayTextureGrabberSection();
+        DisplayAvatarCopySection();
+        DisplayAudioCaptureSection();
         if (GUILayout.Button("Recreate entire avatar"))
-        {
-            if (parentGameObject == null || MeshFolderPath == null || sourceGameObject == null || destinationFolder == null || sourceFolder == null || saveFolder == null || sourceGameObject1 == null || destinationFolder1 == null || parentObject == null || saveFolderPath == null)
-            {
-                Debug.LogError("Please setup all the properties before pressing this button.");
-            }
-            else
-            {
-                //reset values so they dont save for next time
-                copiedMaterials.Clear();
-                copiedAudioClipInstanceIDs.Clear();
-                append = 0;
-                ii = 0;
-                CopyMeshes(); //Meshes
-                CopyMaterialsFromChildren(); //Materials
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
-                a = true;
-            }
-
-        }
-        if (a)
-        {
-            if (GUILayout.Button("Click when shaders are reapplied"))
-            {
-                //Textures
-                string sourceFolderPath = AssetDatabase.GetAssetPath(sourceFolder);
-                string[] materialPaths = Directory.GetFiles(sourceFolderPath, "*.mat");
-                append = 0;
-                foreach (string materialPath in materialPaths)
-                {
-                    Material material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-                    if (material != null)
-                    {
-                        CaptureMaterialTextures(material);
-                    }
-                }
-                CopyAvatar(); //Avatar
-                CaptureAudioFromChildren(); //Audio
-                parentGameObject = null;
-                a = false;
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
-                Debug.Log("Successfully Recreated Avatar");
-            }
-        }
+            HandleRecreateAvatar();
+        if (a && GUILayout.Button("Click when shaders are reapplied"))
+            HandleShadersReapplied();
         if (GUILayout.Button("Clear last recreated avatar"))
+            ClearLastRecreatedAvatar();
+    }
+
+    private void DisplayMeshCopierSection()
+    {
+        GUILayout.Label("Mesh Copier V4:", EditorStyles.boldLabel);
+        MeshFolderPath = (DefaultAsset)EditorGUILayout.ObjectField("Destination Folder", MeshFolderPath, typeof(DefaultAsset), true);
+        GUILayout.Space(10);
+    }
+
+    private void DisplayMaterialCopierSection()
+    {
+        GUILayout.Label("Material Copier V2", EditorStyles.boldLabel);
+        sourceFolder = destinationFolder = (DefaultAsset)EditorGUILayout.ObjectField("Destination Folder", destinationFolder, typeof(DefaultAsset), true);
+        GUILayout.Space(10);
+    }
+
+    private void DisplayTextureGrabberSection()
+    {
+        GUILayout.Label("Texture Grabber V3", EditorStyles.boldLabel);
+        sourceFolder = EditorGUILayout.ObjectField("Source Folder:", sourceFolder, typeof(DefaultAsset), false) as DefaultAsset;
+        saveFolder = EditorGUILayout.ObjectField("Save Folder:", saveFolder, typeof(DefaultAsset), false) as DefaultAsset;
+        GUILayout.Space(10);
+    }
+
+    private void DisplayAvatarCopySection()
+    {
+        GUILayout.Label("Copy Avatar from Animator V3", EditorStyles.boldLabel);
+        destinationFolder1 = EditorGUILayout.ObjectField("Destination Folder", destinationFolder1, typeof(DefaultAsset), true) as DefaultAsset;
+        GUILayout.Space(10);
+    }
+
+    private void DisplayAudioCaptureSection()
+    {
+        GUILayout.Label("Audio Capture V2", EditorStyles.boldLabel);
+        saveFolderPath = EditorGUILayout.ObjectField("Destination Folder", saveFolderPath, typeof(DefaultAsset), false) as DefaultAsset;
+    }
+
+    private void HandleRecreateAvatar()
+    {
+        if (parentGameObject == null || MeshFolderPath == null || destinationFolder == null || sourceFolder == null || saveFolder == null || destinationFolder1 == null || saveFolderPath == null)
+            Debug.LogError("Please setup all the properties before pressing this button.");
+        else
         {
-
-            //Delete Mesh's
-            string[] bGUIDS = AssetDatabase.FindAssets("t:Mesh", new[] { MeshFolderPath });
-            foreach (string guid in bGUIDS)
-            {
-                string meshPath = AssetDatabase.GUIDToAssetPath(guid);
-                File.Delete(meshPath);
-            }
-
-            //Delete Materials
-            bGUIDS = AssetDatabase.FindAssets("t:Material", new[] { AssetDatabase.GetAssetPath(destinationFolder) });
-            foreach (string guid in bGUIDS)
-            {
-                string matPaths = AssetDatabase.GUIDToAssetPath(guid);
-                File.Delete(matPaths);
-            }
-
-            //Delete Textures
-            bGUIDS = AssetDatabase.FindAssets("t:Texture", new[] { AssetDatabase.GetAssetPath(saveFolder) });
-            foreach (string guid in bGUIDS)
-            {
-                string texPaths = AssetDatabase.GUIDToAssetPath(guid);
-                File.Delete(texPaths);
-            }
-
-            //Delete Avatars
-            bGUIDS = AssetDatabase.FindAssets("t:Avatar", new[] { AssetDatabase.GetAssetPath(destinationFolder1) });
-            foreach (string guid in bGUIDS)
-            {
-                string aviPaths = AssetDatabase.GUIDToAssetPath(guid);
-                File.Delete(aviPaths);
-            }
-
-            //Delete Audios
-            bGUIDS = AssetDatabase.FindAssets("t:AudioClip", new[] { AssetDatabase.GetAssetPath(saveFolderPath) });
-            foreach (string guid in bGUIDS)
-            {
-                string audPaths = AssetDatabase.GUIDToAssetPath(guid);
-                File.Delete(audPaths);
-            }
+            ResetValues();
+            StartAssetCopying();
             AssetDatabase.Refresh();
+            a = true;
         }
     }
 
-    //Mesh Methods V2
+    private void ResetValues()
+    {
+        copiedMaterials.Clear();
+        copiedAudioClipInstanceIDs.Clear();
+        meshesnShit.Clear();
+        append = 0;
+        ii = 0;
+        a = false;
+}
+
+    private void StartAssetCopying()
+    {
+        CopyMeshes();
+        CopyMaterialsFromChildren();
+        CopyAvatar();
+    }
+
+    private void HandleShadersReapplied()
+    {
+        ProcessTextures();
+        CaptureAudioFromChildren();
+        FinalizeAvatarRecreation();
+    }
+
+    private void ProcessTextures()
+    {
+        string sourceFolderPath = AssetDatabase.GetAssetPath(sourceFolder);
+        string[] materialPaths = Directory.GetFiles(sourceFolderPath, "*.mat", SearchOption.AllDirectories);
+        append = 0;
+        foreach (string materialPath in materialPaths)
+        {
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (material != null)
+                CaptureMaterialTextures(material);
+        }
+    }
+
+    private void FinalizeAvatarRecreation()
+    {
+        parentGameObject = null;
+        a = false;
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("Successfully Recreated Avatar");
+    }
+
+    private void ClearLastRecreatedAvatar()
+    {
+        foreach (string guid in AssetDatabase.FindAssets("t:Mesh", new[] { AssetDatabase.GetAssetPath(MeshFolderPath) }))
+            File.Delete(AssetDatabase.GUIDToAssetPath(guid));
+
+        foreach (string guid in AssetDatabase.FindAssets("t:Material", new[] { AssetDatabase.GetAssetPath(destinationFolder) }))
+            File.Delete(AssetDatabase.GUIDToAssetPath(guid));
+
+        foreach (string guid in AssetDatabase.FindAssets("t:Texture", new[] { AssetDatabase.GetAssetPath(saveFolder) }))
+            File.Delete(AssetDatabase.GUIDToAssetPath(guid));
+
+        foreach (string guid in AssetDatabase.FindAssets("t:Avatar", new[] { AssetDatabase.GetAssetPath(destinationFolder1) }))
+            File.Delete(AssetDatabase.GUIDToAssetPath(guid));
+
+        foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { AssetDatabase.GetAssetPath(saveFolderPath) }))
+            File.Delete(AssetDatabase.GUIDToAssetPath(guid));
+        AssetDatabase.Refresh();
+
+    }
+
+    //Mesh Methods V4
 
     private void CopyMeshes()
     {
+        var allMeshRenderers = parentGameObject.GetComponentsInChildren<Renderer>(true)
+            .Where(r => r is MeshRenderer || r is SkinnedMeshRenderer)
+            .ToArray();
 
-        MeshFilter[] meshFilters = parentGameObject.GetComponentsInChildren<MeshFilter>(true);
-        SkinnedMeshRenderer[] skinnedMeshRenderers = parentGameObject.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-
-        if ((meshFilters == null || meshFilters.Length == 0) && (skinnedMeshRenderers == null || skinnedMeshRenderers.Length == 0))
+        if (allMeshRenderers.Length == 0)
         {
             Debug.LogError("No meshes found in the selected parent GameObject.");
             return;
         }
 
-
-        int meshCount = 0;
-
-        foreach (MeshFilter meshFilter in meshFilters)
+        foreach (var renderer in allMeshRenderers)
         {
-            if (meshFilter.sharedMesh == null)
-                continue;
+            Mesh sharedMesh = GetSharedMesh(renderer);
+            int meshIndex = MeshCompare(sharedMesh);
 
-            if (MeshCompare(meshFilter.sharedMesh, "Assets/RAFLAB/Default Meshes"))
+            if (meshIndex >= 0)
+                AssignMeshToRenderer(renderer, meshesnShit[meshIndex]);
+            else
             {
-                Debug.LogWarning("Skipping default asset: " + meshFilter.sharedMesh.name);
-                continue;
+                Mesh newMesh = Instantiate(sharedMesh);
+                meshesnShit.Add(newMesh);
+                AssignMeshToRenderer(renderer, newMesh);
             }
-            if (MeshCompare(meshFilter.sharedMesh, MeshFolderPath))
-            {
-                Debug.LogWarning("Skipping Already Copied Mesh: " + meshFilter.sharedMesh.name);
-                meshFilter.sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(copiedMeshSkipPath);
-                continue;
-            }
-
-
-            string meshPath = MeshFolderPath + "/" + meshFilter.name + meshCount + ".asset";
-            Mesh meshCopy = Instantiate(meshFilter.sharedMesh);
-            AssetDatabase.CreateAsset(meshCopy, meshPath);
-            meshFilter.sharedMesh = meshCopy;
-            Debug.Log("Mesh copied and saved to: " + meshPath);
-
-            meshCount++;
         }
 
-        foreach (SkinnedMeshRenderer skinnedMeshRenderer in skinnedMeshRenderers)
+        // Save each mesh as an asset
+        for (int i = 0; i < meshesnShit.Count; i++)
         {
-            if (skinnedMeshRenderer.sharedMesh == null) //|| !uniqueMeshes.Add(skinnedMeshRenderer.sharedMesh))
-                continue;
-
-            if (MeshCompare(skinnedMeshRenderer.sharedMesh, "Assets/RAFLAB/Default Meshes"))
-            {
-                Debug.LogWarning("Skipping Default Asset: " + skinnedMeshRenderer.sharedMesh.name);
-                continue;
-            }
-            if (MeshCompare(skinnedMeshRenderer.sharedMesh, MeshFolderPath))
-            {
-                Debug.LogWarning("Skipping Already Copied Mesh: " + skinnedMeshRenderer.sharedMesh.name);
-                skinnedMeshRenderer.sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(copiedMeshSkipPath);
-                continue;
-            }
-
-            string meshPath = MeshFolderPath + "/" + skinnedMeshRenderer.name + meshCount + ".asset";
-
-            Mesh meshCopy = Instantiate(skinnedMeshRenderer.sharedMesh);
-            AssetDatabase.CreateAsset(meshCopy, meshPath);
-            skinnedMeshRenderer.sharedMesh = meshCopy;
+            string meshPath = AssetDatabase.GetAssetPath(MeshFolderPath) + "/" + meshesnShit[i].name + i + ".asset";
+            AssetDatabase.CreateAsset(meshesnShit[i], meshPath);
             Debug.Log("Mesh copied and saved to: " + meshPath);
-
-            meshCount++;
         }
+        meshesnShit.Clear();
     }
 
-    //Checks for default meshes/already copied meshes and does not create them if returns true
-    private bool MeshCompare(Mesh mesh, string folderPath)
+    private Mesh GetSharedMesh(Renderer renderer)
     {
-        string[] defaultMeshPaths = AssetDatabase.FindAssets("t:Mesh", new[] { folderPath });
-        Vector3[] targetVertices = mesh.vertices;
+        if (renderer is MeshRenderer meshRenderer && meshRenderer.GetComponent<MeshFilter>())
+            return meshRenderer.GetComponent<MeshFilter>().sharedMesh;
+        else if (renderer is SkinnedMeshRenderer skinnedMeshRenderer)
+            return skinnedMeshRenderer.sharedMesh;
+        return null;
+    }
 
-        foreach (var defaultMeshPath in defaultMeshPaths)
+    private void AssignMeshToRenderer(Renderer renderer, Mesh mesh)
+    {
+        if (renderer is MeshRenderer meshRenderer && meshRenderer.GetComponent<MeshFilter>())
+            meshRenderer.GetComponent<MeshFilter>().sharedMesh = mesh;
+        else if (renderer is SkinnedMeshRenderer skinnedMeshRenderer)
+            skinnedMeshRenderer.sharedMesh = mesh;
+    }
+
+    private int MeshCompare(Mesh mesh)
+    {
+        Vector3[] targetVertices = mesh.vertices;
+        int counttt = -1;
+
+        foreach (Mesh defaultMesh in meshesnShit)
         {
-            string assetPath = AssetDatabase.GUIDToAssetPath(defaultMeshPath);
-            Mesh defaultMesh = AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
             Vector3[] defaultVertices = defaultMesh.vertices;
+            counttt++;
 
             if (AreVerticesEqual(defaultVertices, targetVertices))
-            {
-                copiedMeshSkipPath = assetPath;
-                return true;
-            }
+                return counttt;
         }
-        return false;
+        return -1;
     }
 
-    //Compares the vertices of 2 meshes to see if they're the same
     private bool AreVerticesEqual(Vector3[] vertices1, Vector3[] vertices2)
     {
         if (vertices1.Length != vertices2.Length)
-        {
             return false;
-        }
 
         for (int i = 0; i < vertices1.Length; i++)
-        {
             if (vertices1[i] != vertices2[i])
-            {
                 return false;
-            }
-        }
 
         return true;
     }
 
     //Material methods V2
+
     private void CopyMaterialsFromChildren()
     {
-        if (sourceGameObject == null || destinationFolder == null)
+        if (parentGameObject == null || destinationFolder == null)
         {
             Debug.LogError("Please select the source GameObject and destination folder.");
             return;
         }
 
         string destinationFolderPath = AssetDatabase.GetAssetPath(destinationFolder);
-        if (!AssetDatabase.IsValidFolder(destinationFolderPath))
-        {
-            Debug.LogError("Please select a valid destination folder.");
-            return;
-        }
 
         copiedMaterials.Clear();
 
-        TraverseChildrenAndCopyMaterials(sourceGameObject.transform, destinationFolderPath);
+        TraverseChildrenAndCopyMaterials(parentGameObject.transform, destinationFolderPath);
 
         Debug.Log("Materials copied successfully.");
     }
@@ -352,7 +289,7 @@ public class RAFLAB : EditorWindow
                 Material material = materials[i];
                 if (material != null)
                 {
-                    CopyMaterial(material, destinationFolderPath);
+                    CopyMaterial(material, destinationFolderPath, currentTransform.name);
 
                     // Apply the copied material to the renderer
                     Material[] newMaterials = renderer.sharedMaterials;
@@ -377,7 +314,7 @@ public class RAFLAB : EditorWindow
                     Material material = materials[i];
                     if (material != null)
                     {
-                        CopyMaterial(material, destinationFolderPath);
+                        CopyMaterial(material, destinationFolderPath, currentTransform.name);
 
                         // Apply the copied material to the renderer
                         Material[] newMaterials = particleRenderer.sharedMaterials;
@@ -390,39 +327,44 @@ public class RAFLAB : EditorWindow
 
         // Traverse children
         foreach (Transform child in currentTransform)
-        {
             TraverseChildrenAndCopyMaterials(child, destinationFolderPath);
-        }
     }
 
-    private void CopyMaterial(Material sourceMaterial, string destinationFolderPath)
+    private void CopyMaterial(Material sourceMaterial, string destinationFolderPath, string name)
     {
 
         if (sourceMaterial == null || copiedMaterials.ContainsKey(sourceMaterial))
             return;
 
-        string destinationPath = destinationFolderPath + "/" + sourceMaterial.name + ".mat";
+        string ndame = sourceMaterial.shader.name.Replace("/", "");
 
-        // Check if a material with the same name already exists in the destination folder
-        int duplicateCount = 1;
+        if (ndame.StartsWith("."))
+            ndame = ndame.Substring(1, ndame.Length - 1);
+
+        Directory.CreateDirectory(destinationFolderPath + "/" + ndame);
+
+        string destinationPath = destinationFolderPath + "/" + ndame + "/" + sourceMaterial.name + ".mat";
+
+        int duplicateCount = 0;
         while (System.IO.File.Exists(destinationPath))
         {
             string duplicateSuffix = "_" + duplicateCount.ToString();
-            destinationPath = destinationFolderPath + "/" + sourceMaterial.name + duplicateSuffix + ".mat";
+            destinationPath = destinationFolderPath + "/" + ndame + "/" + sourceMaterial.name + duplicateSuffix + ".mat";
             duplicateCount++;
         }
 
+
         Material newMaterial = new Material(sourceMaterial.shader);
         newMaterial.CopyPropertiesFromMaterial(sourceMaterial);
-        newMaterial.shader = sourceMaterial.shader; //New Line as of 10/11/2023)
 
-        // Save the copied material
         AssetDatabase.CreateAsset(newMaterial, destinationPath);
+        newMaterial.shader = sourceMaterial.shader;
 
         copiedMaterials.Add(sourceMaterial, newMaterial);
     }
 
-    //Texture Methods V2
+    //Texture Methods V3
+
     private void CaptureMaterialTextures(Material material)
     {
         string[] propertyNames = material.GetTexturePropertyNames();
@@ -434,43 +376,76 @@ public class RAFLAB : EditorWindow
 
             if (texture != null)
             {
+                string saveFolderPath = AssetDatabase.GetAssetPath(saveFolder);
+
                 if (texture is Texture2DArray)
                 {
-                    // Create a  copy of the Texture2DArray
-                    Texture2DArray newArray = Instantiate((Texture2DArray)texture);
-
-                    // Save the new Texture2DArray to the specified folder.
-                    string saveFolderPath = AssetDatabase.GetAssetPath(saveFolder);
-                    string fullPath = Path.Combine(saveFolderPath, append + propertyName + "_Array.asset");
-                    append++;
-                    AssetDatabase.CreateAsset(newArray, fullPath);
-                    material.SetTexture(propertyName, newArray);
-
-                    Debug.Log("Texture2DArray saved to: " + fullPath);
+                    // Handle Texture2DArray as per your existing logic
+                    HandleTexture2DArray(texture, propertyName, saveFolderPath, material);
                 }
                 else
                 {
-                    // Handle non-texture array case
-                    // Convert the texture to Texture2D.
-                    Texture2D tex2D = TextureToTexture2D(texture);
-
-                    if (tex2D != null)
+                    Texture2D existingTexture = FindExistingTexture(texture, saveFolderPath);
+                    if (existingTexture == null)
                     {
-                        // Save the captured image to the specified folder.
-                        string saveFolderPath = AssetDatabase.GetAssetPath(saveFolder);
-                        string fullPath = Path.Combine(saveFolderPath, append + propertyName + ".png");
-                        append++;
-                        byte[] bytes = tex2D.EncodeToPNG();
-                        File.WriteAllBytes(fullPath, bytes);
-                        AssetDatabase.ImportAsset(fullPath);
-                        Texture2D newTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(fullPath);
-                        material.SetTexture(propertyName, newTexture);
+                        existingTexture = SaveNewTexture(texture, saveFolderPath);
+                        material.SetTexture(propertyName, existingTexture);
+                    }
 
-                        Debug.Log("Texture captured and saved to: " + fullPath);
+                    if (existingTexture != null)
+                    {
+                        material.SetTexture(propertyName, existingTexture);
                     }
                 }
             }
         }
+    }
+
+    private void HandleTexture2DArray(Texture texture, string propertyName, string folderPath, Material material)
+    {
+        Texture2DArray newArray = Instantiate((Texture2DArray)texture);
+
+        // Save the new Texture2DArray to the specified folder.
+        string saveFolderPath = AssetDatabase.GetAssetPath(saveFolder);
+        string fullPath = Path.Combine(saveFolderPath, append + propertyName + "_Array.asset");
+        append++;
+        AssetDatabase.CreateAsset(newArray, fullPath);
+        material.SetTexture(propertyName, newArray);
+
+        Debug.Log("Texture2DArray saved to: " + fullPath);
+    }
+
+    private Texture2D FindExistingTexture(Texture texture, string folderPath)
+    {
+        string instanceIdFileName = texture.GetInstanceID().ToString() + ".png";
+        string potentialPath = Path.Combine(folderPath, instanceIdFileName);
+
+        if (File.Exists(potentialPath))
+        {
+            string relativePath = "Assets" + potentialPath.Substring(Application.dataPath.Length);
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(relativePath);
+        }
+
+        return null;
+    }
+
+    private Texture2D SaveNewTexture(Texture texture, string folderPath)
+    {
+        Texture2D tex2D = TextureToTexture2D(texture);
+        if (tex2D != null)
+        {
+            string filename = texture.GetInstanceID().ToString() + ".png";
+            string fullPath = Path.Combine(folderPath, filename);
+            byte[] bytes = tex2D.EncodeToPNG();
+            File.WriteAllBytes(fullPath, bytes);
+            AssetDatabase.ImportAsset(fullPath);
+            Debug.Log("Texture saved to: " + fullPath);
+
+            //string relativePath = "Assets" + fullPath.Substring(Application.dataPath.Length);
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(fullPath);
+        }
+
+        return null;
     }
 
     private Texture2D TextureToTexture2D(Texture texture)
@@ -492,150 +467,103 @@ public class RAFLAB : EditorWindow
     }
 
 
-    //Avatar Copy Methods V2
+    //Avatar Copy Methods V3
     private void CopyAvatar()
     {
         string folderPath = AssetDatabase.GetAssetPath(destinationFolder1);
+        Animator[] animators = parentGameObject.GetComponentsInChildren<Animator>(true);
 
-        Animator[] animators = sourceGameObject1.GetComponentsInChildren<Animator>(true);
-
-        if (animators.Length == 1)
+        if (animators.Length == 0)
         {
-            if (animators[0].avatar == null) return;
-            else
-            {
-                Avatar newAvatar = UnityEngine.Object.Instantiate(animators[0].avatar);
-                string avatarName = animators[0].avatar.name + "_Avatar.asset";
-                string avatarPath = folderPath + "/" + avatarName;
-                AssetDatabase.CreateAsset(newAvatar, avatarPath);
-                animators[0].avatar = newAvatar;
-                return;
-            }
+            Debug.Log("No animators found.");
+            return;
         }
 
-        HashSet<Avatar> avatarSet = new HashSet<Avatar>();
+        Dictionary<Avatar, Avatar> avatarMap = new Dictionary<Avatar, Avatar>();
 
-        //Setup the hashset
-        for (int i = 0; i < animators.Length; i++)
-        {
-            if (animators[i].avatar == null) continue;
-            if (avatarSet.Contains(animators[i].avatar)) continue;
-            avatarSet.Add(animators[i].avatar);
-        }
-
-        //Set HashSet to array
-        Avatar[] avset = avatarSet.ToArray();
-
-        //Scan through the avset array and set all animator.avatar's to the one in the array
-        
         foreach (Animator animator in animators)
         {
             if (animator.avatar == null) continue;
-            for (int i = 0; i < avset.Length; i++) 
-                if (animator.avatar == avset[i]) animator.avatar = avset[i];
-        }
 
-        //Instantiate everything from the array
-        for (int i = 0; i < avset.Length; i++)
-        {
-            Avatar newAvatar = UnityEngine.Object.Instantiate(avset[i]);
-            string avatarName = avset[i].name + "_Avatar.asset";
-            string avatarPath = folderPath + "/" + avatarName;
-            AssetDatabase.CreateAsset(newAvatar, avatarPath);
-            foreach(Animator animator in animators)
+            // Check if the avatar has already been cloned
+            if (!avatarMap.TryGetValue(animator.avatar, out Avatar newAvatar))
             {
-                if (animator.avatar == null) continue;
-                if (animator.avatar == avset[i]) animator.avatar = newAvatar;
+                newAvatar = UnityEngine.Object.Instantiate(animator.avatar);
+                string avatarName = animator.avatar.name + "_Avatar.asset";
+                string avatarPath = Path.Combine(folderPath, avatarName);
+                AssetDatabase.CreateAsset(newAvatar, avatarPath);
+
+                avatarMap[animator.avatar] = newAvatar;
             }
+
+            animator.avatar = newAvatar;
         }
 
         Debug.Log("Avatar copy completed!");
     }
 
-//Audio Methods V2
+    //Audio Methods V2
 
-private void CaptureAudioFromChildren()
+    private void CaptureAudioFromChildren()
     {
-        if (parentObject != null)
+        if (parentGameObject == null)
         {
-            AudioSource[] audioSources = parentObject.GetComponentsInChildren<AudioSource>(true);
-
-            foreach (AudioSource childAudioSource in audioSources)
-            {
-                AudioClip audioClip = childAudioSource.clip;
-
-                if (audioClip != null)
-                {
-                    int instanceID = audioClip.GetInstanceID();
-
-                    if (!copiedAudioClipInstanceIDs.Contains(instanceID))
-                    {
-                        CaptureAudio(childAudioSource);
-                        copiedAudioClipInstanceIDs.Add(instanceID);
-                    }
-                    else
-                    {
-                        Debug.Log("Audio clip with instance ID " + instanceID + " has already been copied.");
-                    }
-                }
-            }
+            Debug.LogError("Parent Object is not selected.");
+            return;
         }
-        else
+
+        AudioSource[] audioSources = parentGameObject.GetComponentsInChildren<AudioSource>(true);
+
+        foreach (AudioSource source in audioSources)
         {
-            Debug.LogError("Please select a Parent Object.");
+            AudioClip clip = source.clip;
+            if (clip == null) continue;
+
+            int clipID = clip.GetInstanceID();
+            if (copiedAudioClipInstanceIDs.Contains(clipID))
+            {
+                Debug.Log($"Audio clip {clip.name} (Instance ID: {clipID}) already copied.");
+                continue;
+            }
+
+            CaptureAudio(source);
+            copiedAudioClipInstanceIDs.Add(clipID);
         }
     }
 
-    private void CaptureAudio(AudioSource audioSource)
+    private void CaptureAudio(AudioSource source)
     {
-        if (audioSource != null && audioSource.clip != null && saveFolderPath != null)
+        if (source == null || source.clip == null || saveFolderPath == null)
         {
-            string folderPath = AssetDatabase.GetAssetPath(saveFolderPath);
-            string originalClipName = audioSource.clip.name;
-            string fileName = originalClipName + ii + ".wav";
-            ii++;
-            string fullPath = Path.Combine(folderPath, fileName).Replace("\\", "/");
-
-            if (!Directory.Exists(folderPath))
-            {
-                Directory.CreateDirectory(folderPath);
-            }
-
-            AudioClip clip = audioSource.clip;
-            float[] audioData = new float[clip.samples * clip.channels];
-            clip.GetData(audioData, 0);
-            String filePathfull = SavWav.Save(fileName, audioData, clip.samples, clip.channels, clip.frequency, folderPath);
-            Debug.Log("Audio captured and saved to: " + fullPath);
-
+            Debug.LogError("Invalid Audio Source, Clip, or Save Folder.");
+            return;
         }
-        else
-        {
-            Debug.LogError("Please select an Audio Source with a valid AudioClip and a save folder.");
-        }
+
+        string folderPath = AssetDatabase.GetAssetPath(saveFolderPath);
+        string fullPath = Path.Combine(folderPath, $"{source.clip.name}_{ii}.wav").Replace("\\", "/");
+        ii++;
+
+        if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+
+        SavWav.Save(fullPath, source.clip);
+        Debug.Log("Audio captured and saved to: " + fullPath);
     }
 
     public static class SavWav
     {
-        public static String Save(string filename, float[] audioData, int sampleCount, int channelCount, int frequency, string saveFolderPath)
+        public static void Save(string path, AudioClip clip)
         {
-            if (!filename.ToLower().EndsWith(".wav"))
+            if (!path.ToLower().EndsWith(".wav")) path += ".wav";
+
+            Debug.Log("Saving to: " + path);
+
+            using (FileStream fileStream = CreateEmpty(path))
             {
-                filename += ".wav";
+                float[] audioData = new float[clip.samples * clip.channels];
+                clip.GetData(audioData, 0);
+                ConvertAndWrite(fileStream, audioData);
+                WriteHeader(fileStream, clip.samples, clip.channels, clip.frequency);
             }
-
-            var filepath = Path.Combine(saveFolderPath, filename);
-
-            Debug.Log("Saving to: " + filepath);
-
-            var fileStream = CreateEmpty(filepath);
-
-            ConvertAndWrite(fileStream, audioData);
-
-            WriteHeader(fileStream, sampleCount, channelCount, frequency);
-
-            fileStream.Close();
-
-            return filepath;
         }
 
         static FileStream CreateEmpty(string filepath)
@@ -644,9 +572,7 @@ private void CaptureAudioFromChildren()
             byte emptyByte = new byte();
 
             for (int i = 0; i < 44; i++) // we need to write 44 bytes of silence at the beginning of the file to make it a valid wav file.
-            {
                 fileStream.WriteByte(emptyByte);
-            }
 
             return fileStream;
         }
@@ -655,10 +581,7 @@ private void CaptureAudioFromChildren()
         {
             Int16[] intData = new Int16[audioData.Length];
             // Convert float to Int16
-            for (int i = 0; i < audioData.Length; i++)
-            {
-                intData[i] = (short)(audioData[i] * 32767);
-            }
+            for (int i = 0; i < audioData.Length; i++) intData[i] = (short)(audioData[i] * 32767);
 
             // Write to file
             byte[] bytesData = new byte[intData.Length * 2];
