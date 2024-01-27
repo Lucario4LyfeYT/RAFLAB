@@ -2,7 +2,7 @@
 
 RAFLAB is a tool I made that takes a loaded asset bundle and turns that bundle into a working project.
 
-Use [FACS01 loadbundle](https://github.com/FACS01-01/FACS_Utilities) to load in an avatar into unity and then use RAFLAB to get the assets from the bundle
+Use [FACS01](https://github.com/FACS01-01/FACS_Utilities) loadbundle to load in an avatar into unity and then use RAFLAB to get the assets from the bundle
 
 Demonstration of RAFLAB in action:
 [https://www.youtube.com/watch?v=r4NXGyxgXlI](https://www.youtube.com/watch?v=r4NXGyxgXlI)
