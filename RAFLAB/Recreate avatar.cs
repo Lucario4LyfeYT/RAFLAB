@@ -34,12 +34,12 @@ public class RAFLAB : EditorWindow
 
     private bool a = false;
 
-    [MenuItem("Custom/RAFLAB V5")]
+    [MenuItem("RAFLAB/RAFLAB V5.1 BETA")]
     public static void ShowWindow()
     {
         Credits credits = new Credits();
         credits.showWindow();
-        GetWindow<RAFLAB>("RAFLAB V5");
+        GetWindow<RAFLAB>("RAFLAB V5.1 BETA");
     }
 
     private void OnGUI()
@@ -61,7 +61,7 @@ public class RAFLAB : EditorWindow
 
     private void DisplayMeshCopierSection()
     {
-        GUILayout.Label("Mesh Copier V4:", EditorStyles.boldLabel);
+        GUILayout.Label("Mesh Copier V5:", EditorStyles.boldLabel);
         MeshFolderPath = (DefaultAsset)EditorGUILayout.ObjectField("Destination Folder", MeshFolderPath, typeof(DefaultAsset), true);
         GUILayout.Space(10);
     }
@@ -97,7 +97,7 @@ public class RAFLAB : EditorWindow
     private void HandleRecreateAvatar()
     {
         if (parentGameObject == null || MeshFolderPath == null || destinationFolder == null || sourceFolder == null || saveFolder == null || destinationFolder1 == null || saveFolderPath == null)
-            Debug.LogError("Please setup all the properties before pressing this button.");
+            UnityEditor.EditorUtility.DisplayDialog("Error", "Please setup all properties before pressing this button", "Okay");
         else
         {
             ResetValues();
@@ -126,6 +126,8 @@ public class RAFLAB : EditorWindow
 
     private void HandleShadersReapplied()
     {
+        bool confirmDelete = UnityEditor.EditorUtility.DisplayDialog("Confirmation", "Are all shaders reapplied?", "Yes", "No");
+        if (!confirmDelete) return;
         ProcessTextures();
         CaptureAudioFromChildren();
         FinalizeAvatarRecreation();
@@ -155,11 +157,16 @@ public class RAFLAB : EditorWindow
 
     private void ClearLastRecreatedAvatar()
     {
+
+        bool confirmDelete = UnityEditor.EditorUtility.DisplayDialog("Confirmation", "Are you sure you want to clear the last recreated avatar?", "Yes", "No");
+
+        if (!confirmDelete) return;
+
         foreach (string guid in AssetDatabase.FindAssets("t:Mesh", new[] { AssetDatabase.GetAssetPath(MeshFolderPath) }))
             File.Delete(AssetDatabase.GUIDToAssetPath(guid));
 
-        foreach (string guid in AssetDatabase.FindAssets("t:Material", new[] { AssetDatabase.GetAssetPath(destinationFolder) }))
-            File.Delete(AssetDatabase.GUIDToAssetPath(guid));
+        foreach (string folder in Directory.GetDirectories(AssetDatabase.GetAssetPath(destinationFolder)))
+            FileUtil.DeleteFileOrDirectory(folder);
 
         foreach (string guid in AssetDatabase.FindAssets("t:Texture", new[] { AssetDatabase.GetAssetPath(saveFolder) }))
             File.Delete(AssetDatabase.GUIDToAssetPath(guid));
@@ -170,16 +177,17 @@ public class RAFLAB : EditorWindow
         foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { AssetDatabase.GetAssetPath(saveFolderPath) }))
             File.Delete(AssetDatabase.GUIDToAssetPath(guid));
         AssetDatabase.Refresh();
+        a = false;
 
     }
 
-    //Mesh Methods V4
+    //Mesh Methods V5
 
     private void CopyMeshes()
     {
         var allMeshRenderers = parentGameObject.GetComponentsInChildren<Renderer>(true)
-            .Where(r => r is MeshRenderer || r is SkinnedMeshRenderer)
-            .ToArray();
+        .Where(r => r is MeshRenderer || r is SkinnedMeshRenderer || r is ParticleSystemRenderer)
+        .ToArray();
 
         if (allMeshRenderers.Length == 0)
         {
@@ -189,6 +197,8 @@ public class RAFLAB : EditorWindow
 
         foreach (var renderer in allMeshRenderers)
         {
+            if (renderer is ParticleSystemRenderer r)
+                if (r.mesh == null) continue;
             Mesh sharedMesh = GetSharedMesh(renderer);
             int meshIndex = MeshCompare(sharedMesh);
 
@@ -207,7 +217,7 @@ public class RAFLAB : EditorWindow
         {
             string meshPath = AssetDatabase.GetAssetPath(MeshFolderPath) + "/" + meshesnShit[i].name + i + ".asset";
             AssetDatabase.CreateAsset(meshesnShit[i], meshPath);
-            Debug.Log("Mesh copied and saved to: " + meshPath);
+            Debug.LogError("Mesh copied and saved to: " + meshPath);
         }
         meshesnShit.Clear();
     }
@@ -218,6 +228,8 @@ public class RAFLAB : EditorWindow
             return meshRenderer.GetComponent<MeshFilter>().sharedMesh;
         else if (renderer is SkinnedMeshRenderer skinnedMeshRenderer)
             return skinnedMeshRenderer.sharedMesh;
+        else if (renderer is ParticleSystemRenderer particleSystemRenderer)
+            return particleSystemRenderer.mesh;
         return null;
     }
 
@@ -227,6 +239,8 @@ public class RAFLAB : EditorWindow
             meshRenderer.GetComponent<MeshFilter>().sharedMesh = mesh;
         else if (renderer is SkinnedMeshRenderer skinnedMeshRenderer)
             skinnedMeshRenderer.sharedMesh = mesh;
+        else if (renderer is ParticleSystemRenderer particleSystemRenderer)
+            particleSystemRenderer.mesh = mesh;
     }
 
     private int MeshCompare(Mesh mesh)
@@ -239,23 +253,21 @@ public class RAFLAB : EditorWindow
             Vector3[] defaultVertices = defaultMesh.vertices;
             counttt++;
 
-            if (AreVerticesEqual(defaultVertices, targetVertices))
-                return counttt;
+            if (AreVerticesEqual(defaultVertices, targetVertices)) return counttt;
         }
         return -1;
     }
 
     private bool AreVerticesEqual(Vector3[] vertices1, Vector3[] vertices2)
     {
-        if (vertices1.Length != vertices2.Length)
-            return false;
+        if (vertices1.Length != vertices2.Length) return false;
 
         for (int i = 0; i < vertices1.Length; i++)
-            if (vertices1[i] != vertices2[i])
-                return false;
+            if (vertices1[i] != vertices2[i]) return false;
 
         return true;
     }
+
 
     //Material methods V2
 
@@ -485,7 +497,6 @@ public class RAFLAB : EditorWindow
         {
             if (animator.avatar == null) continue;
 
-            // Check if the avatar has already been cloned
             if (!avatarMap.TryGetValue(animator.avatar, out Avatar newAvatar))
             {
                 newAvatar = UnityEngine.Object.Instantiate(animator.avatar);
